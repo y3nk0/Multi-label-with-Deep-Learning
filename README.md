@@ -1,6 +1,6 @@
 # Multi-label Classification with Deep Learning
 
-This is a Python3.5 version and keras 2.4.4 implementation for the paper: ``[ADIOS: Architectures Deep In Output Space](http://bengio.abracadoudou.com/cv/publications/pdf/cisse_2016_icml.pdf)"
+This is a Python3.5 version and keras 2.2.0 implementation for the paper: ``[ADIOS: Architectures Deep In Output Space](http://bengio.abracadoudou.com/cv/publications/pdf/cisse_2016_icml.pdf)"
 
 `adios.utils.assemble.assemble` helper function provides and handy way to construct ADIOS and MLP models from config dictionaries.
 
