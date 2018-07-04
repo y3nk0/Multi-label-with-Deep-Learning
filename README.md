@@ -6,8 +6,7 @@ This is a Python3.5 version and keras 2.4.4 implementation for the paper: ``[ADI
 
 All example scripts are given in `scripts/`.
 
-**Note:** `keras.models.Graph` is no longer supported starting from `keras-v1.0` as of April, 2016.
-The current version of ADIOS uses the legacy code, `keras.legacy.models.Graph`. We replaced it with `Model`.
+**Note:** `keras.models.Graph` was no longer supported starting from `keras-v1.0` as of April, 2016. The ast version of ADIOS used the legacy code, `keras.legacy.models.Graph`. But that does not work with new Keras. Thus we replaced it with `Model`.
 
 
 ### Requirements
@@ -40,4 +39,3 @@ The `--user` flag (optional) will install the package for a given user only.
 
 ### Citation policy
 If you use this code (in full or in part) for academic purposes, please cite the original ADIOS paper.
-
