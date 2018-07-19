@@ -201,3 +201,64 @@ def assemble_adios(params):
     model = MLC(inputs=X, outputs=[Y0,Y1], input_names=params['input_names'], output_names=params['output_names'])
 
     return model
+
+def assemble_adieu(params):
+    """
+    Construct our approach based on ADIOS models. The general structure is the following:
+                                X-H0-(Y0|H0)-H1-(Y1|H1)-...HN-(YN|HN)
+    where all the H-layers are optional and depend on whether they are
+    specified in the params dictionary.
+    """
+
+    # X
+    X = Input(name='X', input_shape=(params['X']['dim'],))
+    last_layer_name = X
+
+    for num_class in num_classes:
+
+        # Hn
+        h_class_num = 'H'+str(num_class)
+        if h_class_num in params:  # there is a hidden layer between Y0 and Y1
+            kwargs = params[h_class_num]['kwargs'] if 'kwargs' in params[h_class_num] else {}
+            if isinstance(last_layer_name, list):
+                model.add(Dense(params[h_class_num]['dim'], **kwargs),
+                               name=h_class_num+'_dense', inputs=last_layer_name)
+            else:
+                model.add(Dense(params[h_class_num]['dim'], **kwargs),
+                               name=h_class_num+'_dense', input=last_layer_name)
+            model.add(Activation('relu'),
+                           name=h_class_num+'_activation', input=h_class_num+'_dense')
+            HN_output_name = h_class_num+'_activation'
+            if 'batch_norm' in params[h_class_num] and params[h_class_num]['batch_norm'] != None:
+                model.add(BatchNormalization(**params[h_class_num]['batch_norm']),
+                               name=h_class_num+'_batch_norm', input=HN_output_name)
+                HN_output_name = h_class_num+'_batch_norm'
+            if 'dropout' in params[h_class_num]:
+                model.add(Dropout(params[h_class_num]['dropout']),
+                               name=h_class_num+'_dropout', input=HN_output_name)
+                HN_output_name = h_class_num+'_dropout'
+            last_layer_name = HN_output_name
+
+        # Yn
+        y_class_num = 'Y'+str(num_class)
+        kwargs = params[y_class_num]['kwargs'] if 'kwargs' in params[y_class_num] else {}
+        if 'W_regularizer' in kwargs:
+          kwargs['W_regularizer'] = l2(kwargs['W_regularizer'])
+        if isinstance(last_layer_name, list):
+            model.add(Dense(params[y_class_num]['dim'], **kwargs),
+                           name=y_class_num+'_dense', inputs=last_layer_name)
+        else:
+            model.add(Dense(params[y_class_num]['dim'], **kwargs),
+                           name=y_class_num+'_dense', input=last_layer_name)
+        model.add(Activation('sigmoid'),
+                       name=y_class_num+'_activation', input='Y1_dense')
+        YN_output_name = y_class_num+'_activation'
+        if 'activity_reg' in params['Y'+str(num_class-1)]:
+            model.add(ActivityRegularization(**params[y_class_num]['activity_reg']),
+                           name=y_class_num+'_activity_reg', input=YN_output_name)
+            YN_output_name = y_class_num+'_activity_reg'
+        model.add_output(name=y_class_num, input=YN_output_name)
+
+    model = MLC(inputs=X, outputs=[Y0,Y1], input_names=params['input_names'], output_names=params['output_names'])
+    
+    return model

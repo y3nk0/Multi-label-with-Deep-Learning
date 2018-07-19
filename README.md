@@ -39,5 +39,9 @@ The `--user` flag (optional) will install the package for a given user only.
 
 This version shows an example of the Delicious dataset, following the MULAN format. You may also need to switch the scikit-multilearn arff reader to non-binary, so that you parse the datasets.
 
+```bash
+$ THEANO_FLAGS=device=cuda0,floatX=float32 python3.5 adios_train.py
+```
+
 ### Citation policy
 If you use this code (in full or in part) for academic purposes, please cite the original ADIOS paper.
