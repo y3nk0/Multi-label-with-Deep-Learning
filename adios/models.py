@@ -9,33 +9,43 @@ import numpy as np
 
 from sklearn import linear_model as lm
 
-#from keras.legacy.models import Graph
+from keras.models import Sequential
 from keras.models import Model
+
+import ipdb
 
 class MLC(Model):
     """
     Multi-label classifier.
 
-    Extends keras.models.Graph. Provides additional functionality and metrics
+    Extends keras.models.Model. Provides additional functionality and metrics
     specific to multi-label classification.
     """
+
+    def __init__(self,inputs,outputs,input_names=None,output_names=None):
+        super().__init__(inputs,outputs)
+        self.input_names = input_names
+        self.output_names = output_names
+
     def _construct_thresholds(self, probs, targets, top_k=None):
+
         assert probs.shape == targets.shape, \
             "The shape of predictions should match the shape of targets."
         nb_samples, nb_labels = targets.shape
+
         top_k = top_k or nb_labels
 
         # Sort predicted probabilities in descending order
         idx = np.argsort(probs, axis=1)[:,:-(top_k + 1):-1]
-        p_sorted = np.vstack([probs[i, idx[i]] for i in xrange(len(idx))])
-        t_sorted = np.vstack([targets[i, idx[i]] for i in xrange(len(idx))])
+        p_sorted = np.vstack([probs[i, idx[i]] for i in range(len(idx))])
+        t_sorted = np.vstack([targets[i, idx[i]] for i in range(len(idx))])
 
         # Compute F-1 measures for every possible threshold position
         F1 = []
         TP = np.zeros(nb_samples)
         FN = t_sorted.sum(axis=1)
         FP = np.zeros(nb_samples)
-        for i in xrange(top_k):
+        for i in range(top_k):
             TP += t_sorted[:,i]
             FN -= t_sorted[:,i]
             FP += 1 - t_sorted[:,i]
@@ -52,9 +62,17 @@ class MLC(Model):
 
     def fit_thresholds(self, data, alpha, batch_size=128, verbose=0,
                        validation_data=None, cv=None, top_k=None):
-        inputs = np.hstack([data[k] for k in self._graph_inputs])
-        probs = self.predict(data, batch_size=batch_size)
-        targets = {k: data[k] for k in self._graph_outputs}
+        #ipdb.set_trace()
+        inputs = np.hstack([data[k] for k in self.input_names])
+        #inputs = data['X']
+        predicts = self.predict(data, batch_size=batch_size)
+        if isinstance(predicts,list):
+            probs = {self.output_names[i]: k for i,k in enumerate(predicts)}
+        else:
+            probs = {'Y': predicts}
+
+        #targets = {k: data[k.name] for k in self.outputs}
+        targets = {k: data[k] for k in self.output_names}
 
         if isinstance(alpha, list):
             if validation_data is None and cv is None:
@@ -64,18 +82,27 @@ class MLC(Model):
                               "be selected based on the default "
                               "cross-validation procedure in RidgeCV.")
             elif validation_data is not None:
-                val_inputs = np.hstack([validation_data[k]
-                                        for k in self._graph_inputs])
-                val_probs = self.predict(validation_data)
-                val_targets = {k: validation_data[k]
-                               for k in self._graph_outputs}
+                val_inputs = np.hstack([validation_data[k] for k in self.input_names])
+                #val_inputs = validation_data['X']
+                val_predicts = self.predict(validation_data)
+                if isinstance(val_predicts,list):
+                    val_probs = {self.output_names[i]: k for i,k in enumerate(val_predicts)}
+                else:
+                    val_probs = {'Y': self.predict(validation_data['X'])}
+                #val_probs = {k: self.predict(validation_data['X'])}
+                val_targets = {k: validation_data[k] for k in self.output_names}
+                # val_targets = {'Y': validation_data['Y']}
 
         if verbose:
             sys.stdout.write("Constructing thresholds.")
             sys.stdout.flush()
 
         self.t_models = {}
-        for k in self._graph_outputs:
+
+        # output_names = [k.name for k in self.outputs]
+        # output_names = ['Y']
+
+        for k in self.output_names:
             if verbose:
                 sys.stdout.write(".")
                 sys.stdout.flush()
@@ -106,13 +133,14 @@ class MLC(Model):
             sys.stdout.flush()
 
     def threshold(self, data, verbose=0):
-        inputs = np.hstack([data[k] for k in self._graph_inputs])
+        inputs = np.hstack([data[k] for k in self.input_names])
+        # inputs = data['X']
 
         if verbose:
             sys.stdout.write("Thresholding...")
             sys.stdout.flush()
 
-        T = {k: self.t_models[k].predict(inputs) for k in self._graph_outputs}
+        T = {k: self.t_models[k].predict(inputs) for k in self.output_names}
 
         if verbose:
             sys.stdout.write("Done.\n")
@@ -121,8 +149,13 @@ class MLC(Model):
         return T
 
     def predict_threshold(self, data, batch_size=128, verbose=0):
-        probs = self.predict(data, batch_size=batch_size, verbose=verbose)
+        predicts = self.predict(data, batch_size=batch_size, verbose=verbose)
+        if isinstance(predicts, list):
+            probs = {self.output_names[i]: k for i,k in enumerate(predicts)}
+        else:
+            probs = {'Y': predicts}
+
         T = self.threshold(data, verbose=verbose)
 
-        preds = {k: probs[k] >= T[k] for k in self._graph_outputs}
+        preds = {k: probs[k] >= T[k] for k in self.output_names}
         return probs, preds

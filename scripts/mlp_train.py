@@ -5,7 +5,7 @@ import numpy as np
 from keras.optimizers import Adagrad
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 
-from adios.datasets import Delicious as Dataset
+from adios.datasets.delicious import Delicious as Dataset
 from adios.callbacks import HammingLoss
 from adios.metrics import f1_measure, hamming_loss, precision_at_k
 from adios.utils.assemble import assemble
@@ -13,12 +13,9 @@ from adios.utils.assemble import assemble
 def main():
     # Load the datasets
     labels_order = 'original'
-    train = Dataset(which_set='train', stop=80.0,
-                    labels_order=labels_order)
-    valid = Dataset(which_set='train', start=80.0,
-                    labels_order=labels_order)
-    test  = Dataset(which_set='test',
-                    labels_order=labels_order)
+    train = Dataset(which_set='train', stop=80.0, labels_order=labels_order)
+    valid = Dataset(which_set='train', start=80.0, labels_order=labels_order)
+    test  = Dataset(which_set='test', labels_order=labels_order)
 
     nb_features = train.X.shape[1]
     nb_labels = train.y.shape[1]
@@ -38,6 +35,8 @@ def main():
     params = yaml.load(params)
     params['X'] = {'dim': nb_features}
     params['Y'] = {'dim': nb_labels}
+    params['input_names'] = ['X']
+    params['output_names'] = ['Y']
 
     # Assemble and compile the model
     model = assemble('MLP', params)
@@ -50,7 +49,7 @@ def main():
 
     # Setup callbacks
     callbacks = [
-        HammingLoss({'valid': valid_dataset}),
+        #HammingLoss({'valid': valid_dataset}),
         ModelCheckpoint('checkpoints/mlp_best.h5', monitor='val_hl',
                         verbose=0, save_best_only=True, mode='min'),
         EarlyStopping(monitor='val_hl', patience=15, verbose=0, mode='min'),
@@ -60,8 +59,8 @@ def main():
     batch_size = 128
     nb_epoch = 300
 
-    model.fit(train_dataset, validation_data=valid_dataset,
-              batch_size=batch_size, nb_epoch=nb_epoch,
+    model.fit(x=train_dataset['X'],y=train_dataset['Y'], validation_data=(valid_dataset['X'],valid_dataset['Y']),
+              batch_size=batch_size, epochs=nb_epoch,
               callbacks=callbacks, verbose=2)
 
     # Load the best weights
@@ -75,7 +74,7 @@ def main():
     # Test the model
     probs, preds = model.predict_threshold(test_dataset)
 
-    hl = hamming_loss(test_dataset, preds)
+    #hl = hamming_loss(test_dataset, preds)
     f1_macro = f1_measure(test_dataset, preds, average='macro')
     f1_micro = f1_measure(test_dataset, preds, average='micro')
     f1_samples = f1_measure(test_dataset, preds, average='samples')
@@ -85,7 +84,7 @@ def main():
 
     for k in ['Y']:
         print
-        print("Hamming loss (%s): %.2f" % (k, hl[k]))
+        #print("Hamming loss (%s): %.2f" % (k, hl[k]))
         print("F1 macro (%s): %.4f" % (k, f1_macro[k]))
         print("F1 micro (%s): %.4f" % (k, f1_micro[k]))
         print("F1 sample (%s): %.4f" % (k, f1_samples[k]))

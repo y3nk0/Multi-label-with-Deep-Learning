@@ -6,9 +6,10 @@ import sys
 import gzip
 import logging
 #import cPickle as pkl
-import _pickle as cPickle
+import _pickle as pkl
 import numpy as np
-
+from scipy.io import arff
+from skmultilearn.dataset import load_from_arff
 
 class MLCDataset(object):
     """
@@ -75,8 +76,24 @@ class MLCDataset(object):
                 'Unrecognized `which_set` value "%s". ' % (which_set,) +
                 'Valid values are ["train", "test", "full"].')
 
-        datapath = os.path.join(self.datadir, which_set + '.pkl.gz')
-        dataset = pkl.load(gzip.open(datapath))
+        # datapath = os.path.join(self.datadir, which_set + '.pkl.gz')
+        # dataset = pkl.load(gzip.open(datapath))
+
+        datapath = os.path.join(self.datadir, which_set  + '.arff')
+        dataset = load_from_arff(datapath,
+            # number of labels
+            labelcount=self.n_labels,
+            # MULAN format, labels at the end of rows in arff data
+            endian='little',
+            # bag of words
+            input_feature_type='int', encode_nominal=False,
+            # sometimes the sparse ARFF loader is borked, like in delicious,
+            # scikit-multilearn converts the loaded data to sparse representations,
+            # so disabling the liac-arff sparse loader
+            load_sparse=False,
+            # this decides whether to return attribute names or not, usually
+            # you don't need this
+            return_attribute_definitions=False)
 
         if self.verbose:
             sys.stdout.write("Done.\n")

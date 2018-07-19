@@ -15,10 +15,9 @@ class HammingLoss(Callback):
 
     def on_epoch_begin(self, epoch, logs={}):
         self.metrics = {}
-        for dname, data in self.datasets.iteritems():
-            preds = self.model.predict(data, batch_size=self.batch_size)
-            hl = np.hstack([np.round(v) != data[k]
-                            for k, v in preds.iteritems()]).sum(axis=1).mean()
+        for dname in self.datasets.keys():
+            preds = self.model.predict(self.datasets[dname], batch_size=self.batch_size)
+            hl = np.hstack([np.round(v) != self.datasets[dname][k] for k, v in preds.items()]).sum(axis=1).mean()
             self.metrics[dname] = hl
 
     def on_batch_begin(self, batch, logs={}):

@@ -7,12 +7,9 @@ http://sourceforge.net/projects/mulan/files/datasets/delicious.rar
 import os
 import gzip
 import logging
-#import cPickle as pkl
-import _pickle as pkl
+
 import numpy as np
-
 from .core import MLCDataset
-
 
 class Delicious(MLCDataset):
     """
@@ -50,7 +47,7 @@ class Delicious(MLCDataset):
         self.n_features = 500
         self.n_labels = n_labels
 
-        datadir = os.path.join(os.environ['DATA_PATH'], 'Delicious')
+        datadir = os.path.join(os.getcwd(),'data/', 'Delicious')
         super(Delicious, self).__init__(datadir, which_set,
             n_labels=n_labels,
             only_labels=only_labels,
@@ -63,7 +60,14 @@ class Delicious(MLCDataset):
         """
         Take the dataset and extract `X` and `y` design matrices.
         """
-        X = np.asarray(dataset['features'].todense(), dtype=np.float32)
-        y = np.asarray(dataset['labels'].todense(), dtype=np.float32)
+        # datapath = os.path.join(self.datadir, dataset+"-features" + '.pkl.gz')
+        # X = pkl.load(gzip.open(datapath))
+        # datapath = os.path.join(self.datadir, dataset+"-labels" + '.pkl.gz')
+        # y = pkl.load(gzip.open(datapath))
+        # X = np.array(X, dtype=np.float32)
+        # y = np.array(y, dtype=np.float32)
+
+        X = np.asarray(dataset[0].todense(), dtype=np.float32)
+        y = np.asarray(dataset[1].todense(), dtype=np.float32)
 
         return X, y

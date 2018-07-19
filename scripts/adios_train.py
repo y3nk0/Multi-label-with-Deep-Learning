@@ -10,6 +10,8 @@ from adios.callbacks import HammingLoss
 from adios.metrics import f1_measure, hamming_loss, precision_at_k
 from adios.utils.assemble import assemble
 
+import ipdb
+
 def main():
     # Load the datasets
     labels_order = 'random'
@@ -24,40 +26,42 @@ def main():
     nb_labels_Y1 = nb_labels - nb_labels_Y0
 
     # Specify datasets in the format of dictionaries
-    train_dataset = {'X': train.X,
-                     'Y0': train.y[:,:nb_labels_Y0],
-                     'Y1': train.y[:,nb_labels_Y0:]}
-    valid_dataset = {'X': valid.X,
-                     'Y0': valid.y[:,:nb_labels_Y0],
-                     'Y1': valid.y[:,nb_labels_Y0:]}
-    test_dataset = {'X': test.X,
-                    'Y0': test.y[:,:nb_labels_Y0],
-                    'Y1': test.y[:,nb_labels_Y0:]}
+    train_dataset = {'X': train.X, 'Y0': train.y[:,:nb_labels_Y0], 'Y1': train.y[:,nb_labels_Y0:]}
+    train_dataset_X = {'X': train.X}
+    train_dataset_Y = {'Y0': train.y[:,:nb_labels_Y0], 'Y1': train.y[:,nb_labels_Y0:]}
 
+    valid_dataset = {'X': valid.X, 'Y0': valid.y[:,:nb_labels_Y0], 'Y1': valid.y[:,nb_labels_Y0:]}
+    valid_dataset_X = {'X': valid.X}
+    valid_dataset_Y = {'Y0': valid.y[:,:nb_labels_Y0], 'Y1': valid.y[:,nb_labels_Y0:]}
+
+    test_dataset = {'X': test.X, 'Y0': test.y[:,:nb_labels_Y0], 'Y1': test.y[:,nb_labels_Y0:]}
+    test_dataset_X = {'X': test.X}
+    test_dataset_Y = {'Y0': test.y[:,:nb_labels_Y0], 'Y1': test.y[:,nb_labels_Y0:]}
+
+    # REMEMBER REMOVED batch_norm: {mode: 1} IN H0,Y0
     # Specify the model
     params = """
     H0:
         dim:        512
         dropout:    0.3
-        batch_norm: {mode: 1}
     Y0:
         W_regularizer: 0.0001
         activity_reg: {l1: 0.0001}
-        batch_norm: {mode: 1}
     Y1:
         W_regularizer: 0.0001
         activity_reg: {l1: 0.0001}
     """
     params = yaml.load(params)
-    params['X']  = {'dim': nb_features}
+    params['X'] = {'dim': nb_features}
     params['Y0']['dim'] = nb_labels_Y0
     params['Y1']['dim'] = nb_labels_Y1
+    params['input_names'] = ['X']
+    params['output_names'] = ['Y0','Y1']
 
     # Assemble and compile the model
     model = assemble('ADIOS', params)
     model.compile(loss={'Y0': 'binary_crossentropy',
-                        'Y1': 'binary_crossentropy'},
-                  optimizer=Adagrad(1e-1))
+                        'Y1': 'binary_crossentropy'}, optimizer=Adagrad(1e-1))
 
     # Make sure checkpoints folder exists
     if not os.path.isdir('checkpoints/'):
@@ -65,8 +69,8 @@ def main():
 
     # Setup callbacks
     callbacks = [
-        HammingLoss({'valid': valid_dataset}),
-        ModelCheckpoint('checkpoints/adios_best.h5', monitor='val_hl',
+        #HammingLoss({'valid': valid_dataset}),
+        ModelCheckpoint('checkpoints/adios_best.h5',
                         verbose=0, save_best_only=True, mode='min'),
         EarlyStopping(monitor='val_loss', patience=15, verbose=0, mode='min'),
     ]
@@ -75,8 +79,8 @@ def main():
     batch_size = 128
     nb_epoch = 300
 
-    model.fit(train_dataset, validation_data=valid_dataset,
-              batch_size=batch_size, nb_epoch=nb_epoch,
+    model.fit(x=train_dataset_X,y=train_dataset_Y, validation_data=(valid_dataset_X,valid_dataset_Y),
+              batch_size=batch_size, epochs=nb_epoch,
               callbacks=callbacks, verbose=2)
 
     # Load the best weights
@@ -84,13 +88,12 @@ def main():
         model.load_weights('checkpoints/adios_best.h5')
 
     # Fit thresholds
-    model.fit_thresholds(train_dataset, validation_data=valid_dataset,
-                         alpha=np.logspace(-3, 3, num=10).tolist(), verbose=1)
+    model.fit_thresholds(train_dataset, validation_data=valid_dataset, alpha=np.logspace(-3, 3, num=10).tolist(), verbose=1)
 
     # Test the model
     probs, preds = model.predict_threshold(test_dataset)
 
-    hl = hamming_loss(test_dataset, preds)
+    #hl = hamming_loss(test_dataset, preds)
     f1_macro = f1_measure(test_dataset, preds, average='macro')
     f1_micro = f1_measure(test_dataset, preds, average='micro')
     f1_samples = f1_measure(test_dataset, preds, average='samples')
@@ -100,7 +103,7 @@ def main():
 
     for k in ['Y0', 'Y1', 'all']:
         print
-        print("Hamming loss (%s): %.2f" % (k, hl[k]))
+        #print("Hamming loss (%s): %.2f" % (k, hl[k]))
         print("F1 macro (%s): %.4f" % (k, f1_macro[k]))
         print("F1 micro (%s): %.4f" % (k, f1_micro[k]))
         print("F1 sample (%s): %.4f" % (k, f1_samples[k]))
