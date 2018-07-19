@@ -50,7 +50,7 @@ def main():
     # Setup callbacks
     callbacks = [
         #HammingLoss({'valid': valid_dataset}),
-        ModelCheckpoint('checkpoints/mlp_best.h5', monitor='val_hl',
+        ModelCheckpoint('checkpoints/mlp_best.h5',
                         verbose=0, save_best_only=True, mode='min'),
         EarlyStopping(monitor='val_hl', patience=15, verbose=0, mode='min'),
     ]

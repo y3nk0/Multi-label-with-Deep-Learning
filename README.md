@@ -10,10 +10,11 @@ All example scripts are given in `scripts/`.
 
 
 ### Requirements
+- `scikit-multilearn`
 - `NumPy`
 - `pyyaml`
 - `Theano`
-- `keras>=1.0`
+- `keras==2.2.0`
 - `scikit-learn`
 
 The requirements can be installed via `pip` as follows:
@@ -36,6 +37,7 @@ $ python setup.py develop [--user]
 
 The `--user` flag (optional) will install the package for a given user only.
 
+This version shows an example of the Delicious dataset, following the MULAN format. You may also need to switch the scikit-multilearn arff reader to non-binary, so that you parse the datasets.
 
 ### Citation policy
 If you use this code (in full or in part) for academic purposes, please cite the original ADIOS paper.
