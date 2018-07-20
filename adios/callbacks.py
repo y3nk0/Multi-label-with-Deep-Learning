@@ -2,6 +2,7 @@
 Multi-label classification specific callbacks.
 """
 import numpy as np
+import ipdb
 
 from keras.callbacks import Callback
 
@@ -16,7 +17,11 @@ class HammingLoss(Callback):
     def on_epoch_begin(self, epoch, logs={}):
         self.metrics = {}
         for dname in self.datasets.keys():
-            preds = self.model.predict(self.datasets[dname], batch_size=self.batch_size)
+            predicts = self.model.predict(self.datasets[dname], batch_size=self.batch_size)
+            if isinstance(predicts,list):
+                preds = {self.output_names[i]: k for i,k in enumerate(predicts)}
+            else:
+                preds = {'Y': predicts}
             hl = np.hstack([np.round(v) != self.datasets[dname][k] for k, v in preds.items()]).sum(axis=1).mean()
             self.metrics[dname] = hl
 
