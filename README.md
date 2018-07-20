@@ -13,7 +13,7 @@ All example scripts are given in `scripts/`.
 - `scikit-multilearn`
 - `NumPy`
 - `pyyaml`
-- `Theano`
+- `Theano==1.0.2`
 - `keras==2.2.0`
 - `scikit-learn`
 
@@ -39,6 +39,8 @@ The `--user` flag (optional) will install the package for a given user only.
 
 This version shows an example of the Delicious dataset, following the MULAN format. You may also need to switch the scikit-multilearn arff reader to non-binary, so that you parse the datasets.
 
+### Example
+To run the ADIOS model with MBC, edit the `scripts/adios_train.py`  change `labels_order` to 'delicious'. Then for the GPU version run:
 ```bash
 $ THEANO_FLAGS=device=cuda0,floatX=float32 python3.5 adios_train.py
 ```
