@@ -19,7 +19,7 @@ class HammingLoss(Callback):
         for dname in self.datasets.keys():
             predicts = self.model.predict(self.datasets[dname], batch_size=self.batch_size)
             if isinstance(predicts,list):
-                preds = {self.output_names[i]: k for i,k in enumerate(predicts)}
+                preds = {self.model.output_names[i]: k for i,k in enumerate(predicts)}
             else:
                 preds = {'Y': predicts}
             hl = np.hstack([np.round(v) != self.datasets[dname][k] for k, v in preds.items()]).sum(axis=1).mean()
